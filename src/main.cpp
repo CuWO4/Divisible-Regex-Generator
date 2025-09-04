@@ -4,15 +4,17 @@
 #include <string>
 #include <cassert>
 
-int parse_arg(int argc, char** argv) {
-  if (argc != 2) {
-    fprintf(stderr, "generator requires exactly 1 argument, but got %d\n", argc);
+void parse_arg(int argc, char** argv, int* n, int *m) {
+  if (argc != 3) {
+    fprintf(stderr, "generator requires exactly 2 argument, but got %d\n", argc);
+    exit(-1);
   }
-  int n = atoi(argv[1]);
-  if (n <= 0) {
-    fprintf(stderr, "invalid argument `%s`, expected a positive integer", argv[1]);
+  *n = atoi(argv[1]);
+  *m = atoi(argv[2]);
+  if (*n <= 0 || *m <= 0 || *m >= *n) {
+    fprintf(stderr, "invalid argument `%s %s` and, expected a positive integer", argv[1], argv[2]);
+    exit(-1);
   }
-  return n;
 }
 
 struct Edge {
@@ -78,13 +80,13 @@ void print_gnfa(GNFA* gnfa) {
   }
 }
 
-GNFA* generate_gnfa(std::size_t n) {
+GNFA* generate_gnfa(std::size_t n, std::size_t m) {
   auto* gnfa = new GNFA();
   for (int i = 0; i < n; i++) {
     gnfa->nodes.push_back(new Node);
   }
   gnfa->nodes[0]->is_start = true;
-  gnfa->nodes[0]->is_accept = true;
+  gnfa->nodes[m]->is_accept = true;
   for (int i = 0; i < n; i++) {
     gnfa->nodes[i]->add_edge((2 * i) % n, "0");
     gnfa->nodes[i]->add_edge((2 * i + 1) % n, "1");
@@ -217,8 +219,9 @@ std::string extract_regex(GNFA* gnfa) {
 }
 
 int main(int argc, char** argv) {
-  int n = parse_arg(argc, argv);
-  auto gnfa = generate_gnfa(n);
+  int n, m;
+  parse_arg(argc, argv, &n, &m);
+  auto gnfa = generate_gnfa(n, m);
   simplify_gnfa(gnfa);
   auto regex = extract_regex(gnfa);
   printf("%s\n", regex.c_str());
