@@ -83,14 +83,26 @@ void print_gnfa(GNFA* gnfa) {
 
 GNFA* generate_gnfa(std::size_t n, std::size_t m) {
   auto* gnfa = new GNFA();
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < n * (n + 1); i++) {
     gnfa->nodes.push_back(new Node);
   }
   gnfa->nodes[0]->is_start = true;
-  gnfa->nodes[m]->is_accept = true;
+  for (int k = 0; k < n + 1; k++) {
+    for (int i = 0; i < n; i++) {
+      gnfa->nodes[k * n + i]->add_edge(k * n + (2 * i) % n, "0");
+      gnfa->nodes[k * n + i]->add_edge(k * n + (2 * i + 1) % n, "1");
+    }
+  }
   for (int i = 0; i < n; i++) {
-    gnfa->nodes[i]->add_edge((2 * i) % n, "0");
-    gnfa->nodes[i]->add_edge((2 * i + 1) % n, "1");
+    if (gnfa->nodes[i]->has_edge_to((i + 1) * n)) {
+      gnfa->nodes[i]->edge_to((i + 1) * n).cond += "|\\+";
+    }
+    else {
+      gnfa->nodes[i]->add_edge((i + 1) * n, "\\+");
+    }
+  }
+  for (int i = 0; i < n; i++) {
+    gnfa->nodes[(i + 1) * n + (m - i + n) % n]->is_accept = true;
   }
   return gnfa;
 }
@@ -124,7 +136,7 @@ void equivalent_remove_node(GNFA* gnfa, std::size_t idx) {
       if (cond1.size() == 0) {
         /* epsilon */
       }
-      else if (cond1 != "0" && cond1 != "1") {
+      else if (cond1 != "0" && cond1 != "1" && cond1 != "\\+") {
         new_cond.append('(' + cond1 + ')');
       }
       else {
@@ -136,7 +148,7 @@ void equivalent_remove_node(GNFA* gnfa, std::size_t idx) {
         if (self_edge_cond.size() == 0) {
           /* epsilon edge, ignore */
         }
-        else if (self_edge_cond == "0" || self_edge_cond == "1") {
+        else if (self_edge_cond == "0" || self_edge_cond == "1" || self_edge_cond == "\\+") {
           new_cond.append(self_edge_cond + "*");
         }
         else if (*self_edge_cond.rbegin() == '*') {
@@ -151,7 +163,7 @@ void equivalent_remove_node(GNFA* gnfa, std::size_t idx) {
       if (cond2.size() == 0) {
         /* epsilon */
       }
-      else if (cond2 != "0" && cond2 != "1") {
+      else if (cond2 != "0" && cond2 != "1" && cond2 != "\\+") {
         new_cond.append('(' + cond2 + ')');
       }
       else {
