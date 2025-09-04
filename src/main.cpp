@@ -9,9 +9,9 @@ void parse_arg(int argc, char** argv, int* n, int *m) {
     fprintf(stderr, "generator requires exactly 2 argument, but got %d\n", argc);
     exit(-1);
   }
-  *n = atoi(argv[1]);
-  *m = atoi(argv[2]);
-  if (*n <= 0 || *m <= 0 || *m >= *n) {
+  *n = std::stoi(argv[1]);
+  *m = std::stoi(argv[2]);
+  if (*n <= 0 || *m < 0 || *m >= *n) {
     fprintf(stderr, "invalid argument `%s %s` and, expected a positive integer", argv[1], argv[2]);
     exit(-1);
   }
@@ -72,6 +72,7 @@ struct GNFA {
 void print_gnfa(GNFA* gnfa) {
   for (int i = 0; i < gnfa->nodes.size(); i++) {
     if (gnfa->nodes[i] == nullptr) continue;
+    printf("%c", gnfa->nodes[i]->is_start ? '>' : gnfa->nodes[i]->is_accept ? '*' : ' ');
     printf("%2d: ", i);
     for (auto edge : gnfa->nodes[i]->edges) {
       printf("'%s' -> %lu | ", edge.cond.c_str(), edge.to);
@@ -120,7 +121,10 @@ void equivalent_remove_node(GNFA* gnfa, std::size_t idx) {
       std::string new_cond;
 
       auto cond1 = n1->edge_to(idx).cond;
-      if (cond1.size() > 1) {
+      if (cond1.size() == 0) {
+        /* epsilon */
+      }
+      else if (cond1 != "0" && cond1 != "1") {
         new_cond.append('(' + cond1 + ')');
       }
       else {
@@ -132,7 +136,7 @@ void equivalent_remove_node(GNFA* gnfa, std::size_t idx) {
         if (self_edge_cond.size() == 0) {
           /* epsilon edge, ignore */
         }
-        else if (self_edge_cond.size() == 1) {
+        else if (self_edge_cond == "0" || self_edge_cond == "1") {
           new_cond.append(self_edge_cond + "*");
         }
         else if (*self_edge_cond.rbegin() == '*') {
@@ -144,7 +148,10 @@ void equivalent_remove_node(GNFA* gnfa, std::size_t idx) {
       }
 
       auto cond2 = node->edge_to(j).cond;
-      if (cond2.size() > 1) {
+      if (cond2.size() == 0) {
+        /* epsilon */
+      }
+      else if (cond2 != "0" && cond2 != "1") {
         new_cond.append('(' + cond2 + ')');
       }
       else {
